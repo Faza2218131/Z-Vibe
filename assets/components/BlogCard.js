@@ -1,12 +1,53 @@
-import React from "react";
+import React, { useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 
 import { Heart } from "lucide-react-native";
 import { colors } from "../theme";
 import { useNavigation } from "@react-navigation/native";
+import { Animated } from "react-native";
 
 export default function BlogCard({ blog, isFavorite, onToggleFavorite, item }) {
   const navigation = useNavigation();
+
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  const handleFavorite = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, {
+        toValue: 1,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -1,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 1,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    onToggleFavorite(blog.id);
+  };
+
+  const shakeStyle = {
+    transform: [
+      {
+        rotate: shakeAnim.interpolate({
+          inputRange: [-1, 1],
+          outputRange: ["-15deg", "15deg"],
+        }),
+      },
+    ],
+  };
   return (
     <TouchableOpacity
       style={styles.card}
@@ -18,15 +59,14 @@ export default function BlogCard({ blog, isFavorite, onToggleFavorite, item }) {
     >
       <Image source={{ uri: blog.image }} style={styles.image} />
 
-      <TouchableOpacity
-        style={styles.favoriteButton}
-        onPress={() => onToggleFavorite(blog.id)}
-      >
-        <Heart
-          size={22}
-          color={isFavorite ? "#EF4444" : "#FFFFFF"}
-          fill={isFavorite ? "#EF4444" : "transparent"}
-        />
+      <TouchableOpacity style={styles.favoriteButton} onPress={handleFavorite}>
+        <Animated.View style={shakeStyle}>
+          <Heart
+            size={22}
+            color={isFavorite ? "#EF4444" : "#FFFFFF"}
+            fill={isFavorite ? "#EF4444" : "transparent"}
+          />
+        </Animated.View>
       </TouchableOpacity>
 
       <View style={styles.content}>

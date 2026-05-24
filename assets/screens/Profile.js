@@ -18,48 +18,6 @@ import { colors, fontType } from "../theme";
 import { blogs } from "../data";
 import BlogCard from "../components/BlogCard";
 
-const photos = [
-  {
-    id: "1",
-    uri: "https://www.bettasplendid.com/wp-content/uploads/2017/09/Razer-Koi-Betta_8921-1.jpg",
-  },
-  {
-    id: "2",
-    uri: "https://www.bettasplendid.com/wp-content/uploads/2017/09/Razer-Koi-Betta_8911-1.jpg",
-  },
-  {
-    id: "3",
-    uri: "https://aquariumfishindia.com/wp-content/uploads/2023/03/Betta-crowntail-super-red-having-tags-of-Betta_yyth.jpg",
-  },
-];
-
-const products = [
-  {
-    id: "1",
-    title: "Cupang Koi Galaxy",
-    price: "150.000",
-    quantity: 12,
-    image:
-      "https://www.bettasplendid.com/wp-content/uploads/2017/09/Razer-Koi-Betta_8921-1.jpg",
-  },
-  {
-    id: "2",
-    title: "Cupang Super Red",
-    price: "200.000",
-    quantity: 8,
-    image:
-      "https://aquariumfishindia.com/wp-content/uploads/2023/03/Betta-crowntail-super-red-having-tags-of-Betta_yyth.jpg",
-  },
-  {
-    id: "3",
-    title: "Cupang Nemo Galaxy",
-    price: "175.000",
-    quantity: 5,
-    image:
-      "https://www.bettasplendid.com/wp-content/uploads/2017/09/Razer-Koi-Betta_8911-1.jpg",
-  },
-];
-
 export default function Profile() {
   const [loaded] = useFonts(fontType);
 
@@ -76,24 +34,6 @@ export default function Profile() {
       return [...prev, id];
     });
   };
-
-  const renderProduct = ({ item }) => (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
-
-      <View style={styles.productCard}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-
-        <View style={styles.productInfo}>
-          <Text style={styles.productTitle}>{item.title}</Text>
-
-          <Text style={styles.productPrice}>Rp {item.price}</Text>
-
-          <Text style={styles.productStock}>Stok {item.quantity}</Text>
-        </View>
-      </View>
-    </SafeAreaView>
-  );
 
   return (
     <SafeAreaView style={styles.container}>

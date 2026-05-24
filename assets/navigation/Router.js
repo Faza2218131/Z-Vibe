@@ -1,6 +1,9 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createStackNavigator } from "@react-navigation/stack";
+import {
+  createStackNavigator,
+  TransitionPresets,
+} from "@react-navigation/stack";
 
 import Homepage from "../screens/Homepage";
 import Favorites from "../screens/Favorites";
@@ -61,7 +64,32 @@ export default function Router() {
     >
       <Stack.Screen name="Main" component={TabNavigator} />
 
-      <Stack.Screen name="Blogdetail" component={Blogdetail} />
+      <Stack.Screen
+        name="BlogDetail"
+        component={Blogdetail}
+        options={{
+          headerShown: false,
+
+          gestureEnabled: true,
+          gestureDirection: "horizontal",
+
+          ...TransitionPresets.SlideFromRightIOS,
+        }}
+      />
+      <Stack.Screen
+        name="Blogdetail"
+        component={Blogdetail}
+        options={{
+          headerShown: false,
+          animationEnabled: true,
+          animationTypeForReplace: "pop",
+
+          gestureEnabled: true,
+          gestureDirection: "horizontal",
+
+          ...TransitionPresets.SlideFromRightIOS,
+        }}
+      />
     </Stack.Navigator>
   );
 }
