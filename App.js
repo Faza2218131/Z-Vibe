@@ -1,9 +1,16 @@
-import * as React from 'react';
-import Profile from './assets/screens/Profile';
-import Favorites from './assets/screens/Favorites';
-import BlogDetail from './assets/screens/Blogdetail';
-import Homepage from './assets/screens/Homepage';
-
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import Router from "./assets/navigation/Router";
+import { fontType } from "./assets/theme";
+import { useFonts } from "expo-font";
 export default function App() {
-  return <Profile />;
+  const [loaded] = useFonts(fontType);
+  if (!loaded) {
+    return null;
+  }
+  return (
+    <NavigationContainer>
+      <Router />
+    </NavigationContainer>
+  );
 }

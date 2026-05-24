@@ -162,23 +162,20 @@ export default function Profile() {
         </View>
 
         <View style={styles.content}>
-          <Text style={[styles.sectionTitle, { paddingBottom: 10 }]}>Blogmu</Text>
-          <FlatList
-            data={blogs}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingBottom: 20,
-            }}
-            renderItem={({ item }) => (
-              <BlogCard
-                blog={item}
-                isFavorite={favorites.includes(item.id)}
-                onToggleFavorite={toggleFavorite}
-              />
-            )}
-          />
+          <Text style={[styles.sectionTitle, { paddingBottom: 10 }]}>
+            Blogmu
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontal}>
+            {blogs.map((item) => (
+              <View key={item.id} style={{ marginRight: 10 }}>
+                <BlogCard
+                  blog={item}
+                  isFavorite={favorites.includes(item.id)}
+                  onToggleFavorite={toggleFavorite}
+                />
+              </View>
+            ))}
+          </ScrollView>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -296,7 +293,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
     fontSize: 18,
     marginHorizontal: 24,
-    marginHorizontal:18,
+    marginHorizontal: 18,
   },
 
   photo: {
@@ -340,5 +337,8 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Medium",
     marginTop: 4,
     color: colors.primary(),
+  },
+  horizontal: {
+    margin: 10,
   },
 });

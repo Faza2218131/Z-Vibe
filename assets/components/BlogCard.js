@@ -1,26 +1,22 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 
 import { Heart } from "lucide-react-native";
 import { colors } from "../theme";
+import { useNavigation } from "@react-navigation/native";
 
-export default function BlogCard({
-  blog,
-  isFavorite,
-  onToggleFavorite,
-}) {
+export default function BlogCard({ blog, isFavorite, onToggleFavorite, item }) {
+  const navigation = useNavigation();
   return (
-    <View style={styles.card}>
-      <Image
-        source={{ uri: blog.image }}
-        style={styles.image}
-      />
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() =>
+        navigation.navigate("Blogdetail", {
+          blogId: blog.id,
+        })
+      }
+    >
+      <Image source={{ uri: blog.image }} style={styles.image} />
 
       <TouchableOpacity
         style={styles.favoriteButton}
@@ -28,40 +24,23 @@ export default function BlogCard({
       >
         <Heart
           size={22}
-          color={
-            isFavorite
-              ? "#EF4444"
-              : "#FFFFFF"
-          }
-          fill={
-            isFavorite
-              ? "#EF4444"
-              : "transparent"
-          }
+          color={isFavorite ? "#EF4444" : "#FFFFFF"}
+          fill={isFavorite ? "#EF4444" : "transparent"}
         />
       </TouchableOpacity>
 
       <View style={styles.content}>
-        <Text style={styles.date}>
-          {blog.date}
-        </Text>
+        <Text style={styles.date}>{blog.date}</Text>
 
-        <Text style={styles.title}>
-          {blog.title}
-        </Text>
+        <Text style={styles.title}>{blog.title}</Text>
 
-        <Text
-          style={styles.description}
-          numberOfLines={2}
-        >
+        <Text style={styles.description} numberOfLines={2}>
           {blog.description}
         </Text>
 
-        <Text style={styles.readMore}>
-          Baca Selengkapnya →
-        </Text>
+        <Text style={styles.readMore}>Baca Selengkapnya →</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -92,8 +71,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
 
-    backgroundColor:
-      "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.4)",
 
     zIndex: 99,
   },
