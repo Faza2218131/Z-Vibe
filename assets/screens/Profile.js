@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Image,
   ScrollView,
   FlatList,
+  TouchableOpacity,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,10 +16,11 @@ import { useFonts } from "expo-font";
 import { DirectInbox, Home, SearchNormal } from "iconsax-react-native";
 
 import { colors, fontType } from "../theme";
-import { blogs } from "../data";
 import BlogCard from "../components/BlogCard";
+import { useFocusEffect } from "@react-navigation/native";
+import axios from "axios";
 
-export default function Profile() {
+export default function Profile({ navigation }) {
   const [loaded] = useFonts(fontType);
 
   const [favorites, setFavorites] = useState([]);
@@ -34,6 +36,39 @@ export default function Profile() {
       return [...prev, id];
     });
   };
+
+  const handleDeleteSuccess = (id) => {
+    setBlogData((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const [loading, setLoading] = useState(true);
+  const [blogData, setBlogData] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const getDataBlog = async () => {
+    try {
+      const response = await axios.get(
+        "https://6a15bc5d91ff9a63de08b2a8.mockapi.io/article",
+      );
+      setBlogData(response.data);
+      setLoading(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      getDataBlog();
+      setRefreshing(false);
+    }, 1500);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      getDataBlog();
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,17 +136,29 @@ export default function Profile() {
           </View>
         </View>
 
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={() => navigation.navigate("UploadBlog")}
+        >
+          <Text style={styles.uploadButtonText}>+ Tambah Blog</Text>
+        </TouchableOpacity>
+
         <View style={styles.content}>
           <Text style={[styles.sectionTitle, { paddingBottom: 10 }]}>
             Blogmu
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontal}>
-            {blogs.map((item) => (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontal}
+          >
+            {blogData.map((item) => (
               <View key={item.id} style={{ marginRight: 10 }}>
                 <BlogCard
                   blog={item}
                   isFavorite={favorites.includes(item.id)}
                   onToggleFavorite={toggleFavorite}
+                  onDeleted={handleDeleteSuccess}
                 />
               </View>
             ))}
@@ -280,5 +327,20 @@ const styles = StyleSheet.create({
   },
   horizontal: {
     margin: 10,
+  },
+  uploadButton: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    height: 50,
+    backgroundColor: "#3B82F6",
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  uploadButtonText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontFamily: "Poppins-Bold",
   },
 });

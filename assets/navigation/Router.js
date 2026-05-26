@@ -9,8 +9,10 @@ import Homepage from "../screens/Homepage";
 import Favorites from "../screens/Favorites";
 import Profile from "../screens/Profile";
 import Blogdetail from "../screens/Blogdetail";
+import UploadBlog from "../screens/UploadBlog";
 
 import { Home, Heart, User } from "lucide-react-native";
+import EditBlog from "../screens/EditBlog";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -88,6 +90,20 @@ export default function Router() {
           gestureDirection: "horizontal",
 
           ...TransitionPresets.SlideFromRightIOS,
+        }}
+      />
+      <Stack.Screen
+        name="UploadBlog"
+        component={UploadBlog}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="EditBlog"
+        component={EditBlog}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>
