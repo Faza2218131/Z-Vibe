@@ -9,10 +9,16 @@ import {
   Alert,
 } from "react-native";
 
-import { Heart, Pencil, Trash2 } from "lucide-react-native";
-import { colors } from "../theme";
+import {
+  Heart,
+  Pencil,
+  Trash2,
+} from "lucide-react-native";
+
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
+
+import { colors } from "../theme";
+import { supabase } from "../libs/supabase";
 
 export default function BlogCard({
   blog,
@@ -22,7 +28,9 @@ export default function BlogCard({
 }) {
   const navigation = useNavigation();
 
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const shakeAnim = useRef(
+    new Animated.Value(0)
+  ).current;
 
   const handleFavorite = () => {
     Animated.sequence([
@@ -71,18 +79,24 @@ export default function BlogCard({
           style: "destructive",
           onPress: async () => {
             try {
-              await axios.delete(
-                `https://6a15bc5d91ff9a63de08b2a8.mockapi.io/article/${blog.id}`
-              );
+              const { error } =
+                await supabase
+                  .from("article")
+                  .delete()
+                  .eq("id", blog.id);
+
+              if (error) {
+                throw error;
+              }
+
+              if (onDeleted) {
+                onDeleted(blog.id);
+              }
 
               Alert.alert(
                 "Berhasil",
                 "Blog berhasil dihapus"
               );
-
-              if (onDeleted) {
-                onDeleted(blog.id);
-              }
             } catch (error) {
               console.log(error);
 
@@ -102,7 +116,10 @@ export default function BlogCard({
       {
         rotate: shakeAnim.interpolate({
           inputRange: [-1, 1],
-          outputRange: ["-15deg", "15deg"],
+          outputRange: [
+            "-15deg",
+            "15deg",
+          ],
         }),
       },
     ],
@@ -111,37 +128,63 @@ export default function BlogCard({
   return (
     <TouchableOpacity
       style={styles.card}
+      activeOpacity={0.9}
       onPress={() =>
-        navigation.navigate("BlogDetail", {
-          blogId: blog.id,
-        })
+        navigation.navigate(
+          "BlogDetail",
+          {
+            blogId: blog.id,
+          }
+        )
       }
     >
       <Image
-        source={{ uri: blog.image }}
+        source={{
+          uri:
+            blog.image ||
+            "https://picsum.photos/600/400",
+        }}
         style={styles.image}
       />
 
-      {/* Favorite */}
       <TouchableOpacity
         style={styles.favoriteButton}
         onPress={handleFavorite}
       >
-        <Animated.View style={shakeStyle}>
+        <Animated.View
+          style={shakeStyle}
+        >
           <Heart
             size={22}
-            color={isFavorite ? "#EF4444" : "#FFFFFF"}
-            fill={isFavorite ? "#EF4444" : "transparent"}
+            color={
+              isFavorite
+                ? "#EF4444"
+                : "#FFFFFF"
+            }
+            fill={
+              isFavorite
+                ? "#EF4444"
+                : "transparent"
+            }
           />
         </Animated.View>
       </TouchableOpacity>
 
       <View style={styles.content}>
         <Text style={styles.date}>
-          {blog.date}
+          {blog.created_at
+            ? new Date(
+                blog.created_at
+              ).toLocaleDateString(
+                "id-ID"
+              )
+            : "-"}
         </Text>
 
-        <Text style={styles.title}>
+        <Text
+          style={styles.title}
+          numberOfLines={2}
+        >
           {blog.title}
         </Text>
 
@@ -156,24 +199,49 @@ export default function BlogCard({
           Baca Selengkapnya →
         </Text>
 
-        {/* CRUD Button */}
-        <View style={styles.actionContainer}>
+        <View
+          style={
+            styles.actionContainer
+          }
+        >
           <TouchableOpacity
-            style={styles.editButton}
+            style={
+              styles.editButton
+            }
             onPress={handleEdit}
           >
-            <Pencil size={16} color="#FFF" />
-            <Text style={styles.buttonText}>
+            <Pencil
+              size={16}
+              color="#FFF"
+            />
+
+            <Text
+              style={
+                styles.buttonText
+              }
+            >
               Edit
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={handleDelete}
+            style={
+              styles.deleteButton
+            }
+            onPress={
+              handleDelete
+            }
           >
-            <Trash2 size={16} color="#FFF" />
-            <Text style={styles.buttonText}>
+            <Trash2
+              size={16}
+              color="#FFF"
+            />
+
+            <Text
+              style={
+                styles.buttonText
+              }
+            >
               Hapus
             </Text>
           </TouchableOpacity>
@@ -185,7 +253,8 @@ export default function BlogCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.white(),
+    backgroundColor:
+      colors.white(),
     borderRadius: 16,
     overflow: "hidden",
     marginBottom: 16,
@@ -201,15 +270,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 15,
     top: 15,
-
     width: 42,
     height: 42,
     borderRadius: 21,
-
     justifyContent: "center",
     alignItems: "center",
-
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor:
+      "rgba(0,0,0,0.4)",
     zIndex: 99,
   },
 
@@ -218,36 +285,43 @@ const styles = StyleSheet.create({
   },
 
   date: {
-    fontFamily: "Poppins-Light",
-    color: colors.textMuted(),
+    fontFamily:
+      "Poppins-Light",
+    color:
+      colors.textMuted(),
     fontSize: 12,
     marginBottom: 8,
   },
 
   title: {
-    fontFamily: "Poppins-SemiBold",
+    fontFamily:
+      "Poppins-SemiBold",
     fontSize: 18,
-    color: colors.textPrimary(),
+    color:
+      colors.textPrimary(),
     marginBottom: 8,
   },
 
   description: {
-    fontFamily: "Poppins-Regular",
-    color: colors.textSecondary(),
+    fontFamily:
+      "Poppins-Regular",
+    color:
+      colors.textSecondary(),
     fontSize: 14,
     lineHeight: 22,
     marginBottom: 12,
   },
 
   readMore: {
-    fontFamily: "Poppins-SemiBold",
-    color: colors.primary(),
+    fontFamily:
+      "Poppins-SemiBold",
+    color:
+      colors.primary(),
     marginBottom: 15,
   },
 
   actionContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     gap: 10,
   },
 
@@ -256,7 +330,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-
     backgroundColor: "#2563EB",
     paddingVertical: 10,
     borderRadius: 10,
@@ -267,7 +340,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-
     backgroundColor: "#DC2626",
     paddingVertical: 10,
     borderRadius: 10,
@@ -276,6 +348,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#FFF",
     marginLeft: 6,
-    fontFamily: "Poppins-SemiBold",
+    fontFamily:
+      "Poppins-SemiBold",
   },
 });

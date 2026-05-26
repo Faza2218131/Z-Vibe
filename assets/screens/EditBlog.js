@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,91 +6,93 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
   Alert,
   ActivityIndicator,
 } from "react-native";
 
+import * as ImagePicker from "expo-image-picker";
+
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft } from "lucide-react-native";
-import axios from "axios";
+import { ArrowLeft, Image as ImageIcon } from "lucide-react-native";
+import { supabase } from "../libs/supabase";
 
-export default function EditBlog({ navigation, route }) {
-  const { blogId } = route.params;
-
+export default function UploadBlog({ navigation }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [content, setContent] = useState("");
-  const [image, setImage] = useState("");
+  const [imageUri, setImageUri] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    getBlog();
-  }, []);
-
-  const getBlog = async () => {
+  const pickImage = async () => {
     try {
-      setLoading(true);
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-      const response = await axios.get(
-        `https://6a15bc5d91ff9a63de08b2a8.mockapi.io/article/${blogId}`
-      );
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Izinkan akses galeri terlebih dahulu",
+        );
+        return;
+      }
 
-      const data = response.data;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
 
-      setTitle(data.title || "");
-      setDescription(data.description || "");
-      setImage(data.image || "");
+      if (!result.canceled) {
+        setImageUri(result.assets[0].uri);
+      }
     } catch (error) {
       console.log(error);
-      Alert.alert("Error", "Failed to load blog");
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleUpdate = async () => {
+  const handleUpload = async () => {
     if (!title || !description) {
-      Alert.alert(
-        "Validation",
-        "Title dan Content wajib diisi"
-      );
+      Alert.alert("Validasi", "Judul dan isi artikel wajib diisi");
       return;
     }
 
     try {
       setLoading(true);
 
-      await axios.put(
-        `https://6a15bc5d91ff9a63de08b2a8.mockapi.io/article/${blogId}`,
-        {
-          title,
-          description,
-          content,
-          image,
-        }
-      );
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      Alert.alert(
-        "Success",
-        "Blog berhasil diperbarui",
-        [
+      const { data, error } = await supabase
+        .from("article")
+        .insert([
           {
-            text: "OK",
-            onPress: () =>
-              navigation.navigate("BlogDetail", {
-                blogId,
-              }),
+            title,
+            description,
+            image: imageUri,
+            author: user?.email || "Unknown User",
           },
-        ]
-      );
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      Alert.alert("Berhasil", "Artikel berhasil dipublikasikan", [
+        {
+          text: "OK",
+          onPress: () =>
+            navigation.navigate("BlogDetail", {
+              blogId: data.id,
+            }),
+        },
+      ]);
     } catch (error) {
       console.log(error);
 
-      Alert.alert(
-        "Error",
-        "Gagal memperbarui blog"
-      );
+      Alert.alert("Error", "Gagal menambahkan artikel");
     } finally {
       setLoading(false);
     }
@@ -98,8 +100,8 @@ export default function EditBlog({ navigation, route }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
+      <SafeAreaView style={styles.loading}>
+        <ActivityIndicator size="large" color="#3B82F6" />
       </SafeAreaView>
     );
   }
@@ -107,71 +109,56 @@ export default function EditBlog({ navigation, route }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()}>
             <ArrowLeft size={24} color="#111" />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>
-            Edit Blog
-          </Text>
+          <Text style={styles.headerTitle}>Upload Blog</Text>
         </View>
 
-        {/* Judul */}
+        {/* IMAGE PICKER */}
+        <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} style={styles.previewImage} />
+          ) : (
+            <>
+              <ImageIcon size={40} color="#777" />
+              <Text style={styles.imageText}>Pilih Cover Blog</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* TITLE */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>
-            Judul Blog
-          </Text>
+          <Text style={styles.label}>Judul Blog</Text>
 
           <TextInput
+            placeholder="Masukkan judul blog"
             value={title}
             onChangeText={setTitle}
-            placeholder="Masukkan judul blog"
             style={styles.input}
           />
         </View>
 
-        {/* Isi Artikel */}
+        {/* DESCRIPTION */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>
-            Isi Artikel
-          </Text>
+          <Text style={styles.label}>Isi Artikel</Text>
 
           <TextInput
+            placeholder="Tulis artikel..."
             value={description}
             onChangeText={setDescription}
-            placeholder="Tulis artikel..."
             multiline
             textAlignVertical="top"
             style={[styles.input, { height: 220 }]}
           />
         </View>
 
-        {/* URL Gambar */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>
-            URL Gambar
-          </Text>
-
-          <TextInput
-            value={image}
-            onChangeText={setImage}
-            placeholder="https://..."
-            style={styles.input}
-          />
-        </View>
-
-        {/* Button Update */}
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleUpdate}
-        >
-          <Text style={styles.buttonText}>
-            Update Blog
-          </Text>
+        {/* BUTTON */}
+        <TouchableOpacity style={styles.button} onPress={handleUpload}>
+          <Text style={styles.buttonText}>Publikasikan Blog</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -179,15 +166,15 @@ export default function EditBlog({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-
-  loadingContainer: {
+  loading: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
   },
 
   header: {
@@ -200,6 +187,29 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     fontSize: 20,
     fontWeight: "bold",
+  },
+
+  imagePicker: {
+    height: 220,
+    marginHorizontal: 20,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "#DDD",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    overflow: "hidden",
+  },
+
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  imageText: {
+    marginTop: 10,
+    color: "#777",
   },
 
   inputContainer: {

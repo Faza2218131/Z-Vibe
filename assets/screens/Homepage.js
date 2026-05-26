@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -20,10 +20,11 @@ import {
   Heart,
 } from "lucide-react-native";
 
-import axios from "axios";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { colors, fontType } from "../theme";
 import BlogCard from "../components/BlogCard";
+import { supabase } from "../libs/supabase";
 
 export default function Homepage() {
   const [loaded] = useFonts(fontType);
@@ -33,45 +34,60 @@ export default function Homepage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    getBlogs();
-  }, []);
-
   const getBlogs = async () => {
     try {
       setLoading(true);
 
-      const response = await axios.get(
-        "https://6a15bc5d91ff9a63de08b2a8.mockapi.io/article"
-      );
+      const { data, error } = await supabase
+        .from("article")
+        .select("*")
+        .order("created_at", {
+          ascending: false,
+        });
 
-      setBlogs(response.data);
+      if (error) {
+        throw error;
+      }
+
+      setBlogs(data || []);
     } catch (error) {
-      console.log("Error Get Blog :", error);
+      console.log("GET BLOG ERROR :", error);
     } finally {
       setLoading(false);
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      getBlogs();
+    }, [])
+  );
+
   const onRefresh = async () => {
     setRefreshing(true);
+
     await getBlogs();
+
     setRefreshing(false);
   };
 
   const toggleFavorite = (id) => {
     setFavorites((prev) => {
       if (prev.includes(id)) {
-        return prev.filter((item) => item !== id);
+        return prev.filter(
+          (item) => item !== id
+        );
       }
 
       return [...prev, id];
     });
   };
 
-  const handleDeleteSuccess = (id) => {
-    setBlogs((prevBlogs) =>
-      prevBlogs.filter((item) => item.id !== id)
+  const handleDeleteSuccess = (deletedId) => {
+    setBlogs((prev) =>
+      prev.filter(
+        (item) => item.id !== deletedId
+      )
     );
   };
 
@@ -81,10 +97,12 @@ export default function Homepage() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView
+        style={styles.loadingContainer}
+      >
         <ActivityIndicator
           size="large"
-          color={colors.primary()}
+          color="#3B82F6"
         />
       </SafeAreaView>
     );
@@ -118,9 +136,9 @@ export default function Homepage() {
       </View>
 
       {/* MENU */}
-      <View style={styles.content}>
-        <Text style={styles.judul}>Menu</Text>
-      </View>
+      <Text style={styles.sectionTitle}>
+        Menu
+      </Text>
 
       <View style={styles.menu}>
         <View style={styles.menuButton}>
@@ -128,6 +146,7 @@ export default function Homepage() {
             color={colors.textPrimary()}
             size={32}
           />
+
           <Text style={styles.menuText}>
             Sport
           </Text>
@@ -138,6 +157,7 @@ export default function Homepage() {
             color={colors.textPrimary()}
             size={32}
           />
+
           <Text style={styles.menuText}>
             Date
           </Text>
@@ -148,6 +168,7 @@ export default function Homepage() {
             color={colors.textPrimary()}
             size={32}
           />
+
           <Text style={styles.menuText}>
             Activity
           </Text>
@@ -158,57 +179,57 @@ export default function Homepage() {
             color={colors.textPrimary()}
             size={32}
           />
+
           <Text style={styles.menuText}>
             Food
           </Text>
         </View>
       </View>
 
-      {/* BLOG */}
-      <View style={styles.blogContainer}>
-        <Text style={styles.judul}>
-          Disarankan
-        </Text>
-
-        <FlatList
-          data={blogs}
-          keyExtractor={(item) =>
-            item.id.toString()
-          }
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-            />
-          }
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingBottom: 30,
-          }}
-          ListEmptyComponent={() => (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                Tidak ada blog tersedia
-              </Text>
-            </View>
-          )}
-          renderItem={({ item }) => (
-            <BlogCard
-              blog={item}
-              isFavorite={favorites.includes(
-                item.id
-              )}
-              onToggleFavorite={
-                toggleFavorite
-              }
-              onDeleted={
-                handleDeleteSuccess
-              }
-            />
-          )}
-        />
-      </View>
+      {/* BLOG LIST */}
+      <FlatList
+        data={blogs}
+        keyExtractor={(item) =>
+          item.id.toString()
+        }
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        }
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: 30,
+        }}
+        ListHeaderComponent={() => (
+          <Text style={styles.sectionTitle}>
+            Disarankan
+          </Text>
+        )}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              Tidak ada blog tersedia
+            </Text>
+          </View>
+        )}
+        renderItem={({ item }) => (
+          <BlogCard
+            blog={item}
+            isFavorite={favorites.includes(
+              item.id
+            )}
+            onToggleFavorite={
+              toggleFavorite
+            }
+            onDeleted={
+              handleDeleteSuccess
+            }
+          />
+        )}
+      />
     </SafeAreaView>
   );
 }
@@ -216,7 +237,8 @@ export default function Homepage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background(),
+    backgroundColor:
+      colors.background(),
     paddingTop: 16,
   },
 
@@ -228,19 +250,22 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     alignItems: "center",
 
     paddingHorizontal: 24,
     paddingVertical: 12,
 
-    backgroundColor: colors.white(),
+    backgroundColor:
+      colors.white(),
   },
 
   headerText: {
     fontFamily: "Poppins-Bold",
     fontSize: 28,
-    color: colors.textPrimary(),
+    color:
+      colors.textPrimary(),
   },
 
   favoriteContainer: {
@@ -269,29 +294,30 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Bold",
   },
 
-  content: {
-    paddingHorizontal: 16,
-    marginTop: 10,
-  },
+  sectionTitle: {
+    marginHorizontal: 16,
+    marginVertical: 12,
 
-  judul: {
     fontSize: 24,
     fontFamily: "Poppins-Bold",
-    color: colors.textPrimary(),
+
+    color:
+      colors.textPrimary(),
   },
 
   menu: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent:
+      "space-around",
 
-    marginTop: 16,
     marginBottom: 20,
   },
 
   menuButton: {
     alignItems: "center",
 
-    backgroundColor: colors.white(),
+    backgroundColor:
+      colors.white(),
 
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -304,12 +330,11 @@ const styles = StyleSheet.create({
   menuText: {
     marginTop: 8,
     fontSize: 12,
-    fontFamily: "Poppins-Regular",
-    color: colors.textPrimary(),
-  },
+    fontFamily:
+      "Poppins-Regular",
 
-  blogContainer: {
-    flex: 1,
+    color:
+      colors.textPrimary(),
   },
 
   emptyContainer: {
@@ -320,7 +345,10 @@ const styles = StyleSheet.create({
 
   emptyText: {
     fontSize: 14,
-    fontFamily: "Poppins-Regular",
-    color: colors.textMuted(),
+    fontFamily:
+      "Poppins-Regular",
+
+    color:
+      colors.textMuted(),
   },
 });

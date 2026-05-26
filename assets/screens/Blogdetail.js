@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -21,69 +21,77 @@ import {
   Trash2,
 } from "lucide-react-native";
 
-import axios from "axios";
-import { colors } from "../theme";
+import { useFocusEffect } from "@react-navigation/native";
+import { supabase } from "../libs/supabase";
 
 export default function BlogDetail({ navigation, route }) {
   const { blogId } = route.params;
 
   const [liked, setLiked] = useState(false);
-  const [selectedBlog, setSelectedBlog] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getBlogById();
-  }, []);
+  const [selectedBlog, setSelectedBlog] = useState(null);
 
   const getBlogById = async () => {
     try {
       setLoading(true);
 
-      const response = await axios.get(
-        `https://6a15bc5d91ff9a63de08b2a8.mockapi.io/article/${blogId}`,
-      );
+      const { data, error } = await supabase
+        .from("article")
+        .select("*")
+        .eq("id", blogId)
+        .single();
 
-      setSelectedBlog(response.data);
+      if (error) throw error;
+
+      setSelectedBlog(data);
     } catch (error) {
       console.log(error);
-      Alert.alert("Error", "Failed to load blog data");
+
+      Alert.alert("Error", "Gagal mengambil data artikel");
     } finally {
       setLoading(false);
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      getBlogById();
+    }, [blogId]),
+  );
+
   const navigateEdit = () => {
     navigation.navigate("EditBlog", {
-      blogId: blogId,
+      blogId,
     });
   };
 
   const handleDelete = () => {
-    Alert.alert("Delete Blog", "Are you sure you want to delete this blog?", [
+    Alert.alert("Hapus Blog", "Apakah Anda yakin ingin menghapus blog ini?", [
       {
-        text: "Cancel",
+        text: "Batal",
         style: "cancel",
       },
       {
-        text: "Delete",
+        text: "Hapus",
         style: "destructive",
         onPress: async () => {
           try {
             setLoading(true);
 
-            await axios.delete(
-              `https://6a15bc5d91ff9a63de08b2a8.mockapi.io/article/${blogId}`,
-            );
+            const { error } = await supabase
+              .from("article")
+              .delete()
+              .eq("id", blogId);
 
-            Alert.alert("Success", "Blog deleted successfully");
+            if (error) throw error;
 
-            navigation.navigate("MainApp", {
-              screen: "Profile",
-            });
+            Alert.alert("Berhasil", "Artikel berhasil dihapus");
+
+            navigation.goBack();
           } catch (error) {
             console.log(error);
 
-            Alert.alert("Error", "Failed to delete blog");
+            Alert.alert("Error", "Gagal menghapus artikel");
           } finally {
             setLoading(false);
           }
@@ -95,7 +103,7 @@ export default function BlogDetail({ navigation, route }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#3B82F6" />
       </SafeAreaView>
     );
   }
@@ -103,7 +111,7 @@ export default function BlogDetail({ navigation, route }) {
   if (!selectedBlog) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <Text>Blog not found</Text>
+        <Text>Artikel tidak ditemukan</Text>
       </SafeAreaView>
     );
   }
@@ -113,10 +121,11 @@ export default function BlogDetail({ navigation, route }) {
       <StatusBar style="light" />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Cover */}
         <View>
           <Image
-            source={{ uri: selectedBlog.image }}
+            source={{
+              uri: selectedBlog.image || "https://picsum.photos/800/500",
+            }}
             style={styles.coverImage}
           />
 
@@ -139,28 +148,37 @@ export default function BlogDetail({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
           <Text style={styles.title}>{selectedBlog.title}</Text>
 
           <View style={styles.infoContainer}>
             <View style={styles.infoItem}>
               <User size={16} color="#6B7280" />
-              <Text style={styles.infoText}>{selectedBlog.author}</Text>
+
+              <Text style={styles.infoText}>
+                {selectedBlog.author || "Admin"}
+              </Text>
             </View>
 
             <View style={styles.infoItem}>
               <Calendar size={16} color="#6B7280" />
-              <Text style={styles.infoText}>{selectedBlog.date}</Text>
+
+              <Text style={styles.infoText}>
+                {selectedBlog.created_at
+                  ? new Date(selectedBlog.created_at).toLocaleDateString(
+                      "id-ID",
+                    )
+                  : "-"}
+              </Text>
             </View>
           </View>
 
           <Text style={styles.articleText}>{selectedBlog.description}</Text>
 
-          {/* Action Buttons */}
           <View style={styles.actionContainer}>
             <TouchableOpacity style={styles.editButton} onPress={navigateEdit}>
               <Pencil size={18} color="#FFF" />
+
               <Text style={styles.buttonText}>Edit</Text>
             </TouchableOpacity>
 
@@ -169,7 +187,8 @@ export default function BlogDetail({ navigation, route }) {
               onPress={handleDelete}
             >
               <Trash2 size={18} color="#FFF" />
-              <Text style={styles.buttonText}>Delete</Text>
+
+              <Text style={styles.buttonText}>Hapus</Text>
             </TouchableOpacity>
           </View>
         </View>

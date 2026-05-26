@@ -1,18 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+
+import { View, ActivityIndicator } from "react-native";
+
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   createStackNavigator,
   TransitionPresets,
 } from "@react-navigation/stack";
 
+import { supabase } from "../libs/supabase";
+
 import Homepage from "../screens/Homepage";
 import Favorites from "../screens/Favorites";
 import Profile from "../screens/Profile";
 import Blogdetail from "../screens/Blogdetail";
 import UploadBlog from "../screens/UploadBlog";
-
-import { Home, Heart, User } from "lucide-react-native";
 import EditBlog from "../screens/EditBlog";
+import Login from "../screens/Login";
+import Register from "../screens/Register";
+
+import {
+  Home,
+  Heart,
+  User,
+} from "lucide-react-native";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -31,7 +42,9 @@ function TabNavigator() {
         component={Homepage}
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Home color={color} size={size} />
+          ),
         }}
       />
 
@@ -40,7 +53,9 @@ function TabNavigator() {
         component={Favorites}
         options={{
           title: "Favorites",
-          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Heart color={color} size={size} />
+          ),
         }}
       />
 
@@ -48,64 +63,106 @@ function TabNavigator() {
         name="Profile"
         component={Profile}
         options={{
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <User color={color} size={size} />
+          ),
         }}
       />
     </Tab.Navigator>
   );
 }
 
-/* ================= STACK NAVIGATOR ================= */
+/* ================= ROUTER ================= */
 
 export default function Router() {
+  const [session, setSession] =
+    useState(undefined);
+
+  useEffect(() => {
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () =>
+      subscription.unsubscribe();
+  }, []);
+
+  const checkSession = async () => {
+    const { data } =
+      await supabase.auth.getSession();
+
+    setSession(data.session);
+  };
+
+  if (session === undefined) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator
+          size="large"
+        />
+      </View>
+    );
+  }
+
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
       }}
     >
-      <Stack.Screen name="Main" component={TabNavigator} />
+      {session ? (
+        <>
+          <Stack.Screen
+            name="Main"
+            component={TabNavigator}
+          />
 
-      <Stack.Screen
-        name="BlogDetail"
-        component={Blogdetail}
-        options={{
-          headerShown: false,
+          <Stack.Screen
+            name="BlogDetail"
+            component={Blogdetail}
+            options={{
+              gestureEnabled: true,
+              gestureDirection:
+                "horizontal",
+              ...TransitionPresets.SlideFromRightIOS,
+            }}
+          />
 
-          gestureEnabled: true,
-          gestureDirection: "horizontal",
+          <Stack.Screen
+            name="UploadBlog"
+            component={UploadBlog}
+          />
 
-          ...TransitionPresets.SlideFromRightIOS,
-        }}
-      />
-      <Stack.Screen
-        name="Blogdetail"
-        component={Blogdetail}
-        options={{
-          headerShown: false,
-          animationEnabled: true,
-          animationTypeForReplace: "pop",
+          <Stack.Screen
+            name="EditBlog"
+            component={EditBlog}
+          />
+        </>
+      ) : (
+        <>
+          <Stack.Screen
+            name="Login"
+            component={Login}
+          />
 
-          gestureEnabled: true,
-          gestureDirection: "horizontal",
-
-          ...TransitionPresets.SlideFromRightIOS,
-        }}
-      />
-      <Stack.Screen
-        name="UploadBlog"
-        component={UploadBlog}
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="EditBlog"
-        component={EditBlog}
-        options={{
-          headerShown: false,
-        }}
-      />
+          <Stack.Screen
+            name="Register"
+            component={Register}
+          />
+        </>
+      )}
     </Stack.Navigator>
   );
 }
